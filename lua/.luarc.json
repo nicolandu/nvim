@@ -1,0 +1,20 @@
+{
+    "workspace.library": [
+        "/home/nicol/.config/nvim",
+        "/home/nicol/.local/share/nvim/plugged/lualine.nvim",
+        "/home/nicol/.local/share/nvim/plugged/nerdtree",
+        "/home/nicol/.local/share/nvim/plugged/undotree",
+        "/home/nicol/.local/share/nvim/plugged/suda.vim",
+        "/home/nicol/.local/share/nvim/plugged/nvim-lspconfig",
+        "/home/nicol/.local/share/nvim/plugged/mason.nvim",
+        "/home/nicol/.local/share/nvim/plugged/mason-lspconfig.nvim",
+        "/home/nicol/.local/share/nvim/plugged/nvim-cmp",
+        "/home/nicol/.local/share/nvim/plugged/cmp-nvim-lsp",
+        "/home/nicol/.local/share/nvim/plugged/LuaSnip",
+        "/home/nicol/.local/share/nvim/plugged/lsp-zero.nvim",
+        "/home/nicol/.local/share/nvim/site",
+        "/usr/share/nvim/runtime",
+        "/home/nicol/.local/share/nvim/plugged/cmp-nvim-lsp/after",
+        "${3rd}/luassert/library"
+    ]
+}

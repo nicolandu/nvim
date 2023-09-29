@@ -1,3 +1,4 @@
+--[[
 local colors = {
     gray     = '#3C3C3C',
     lightred = '#D16969',
@@ -34,11 +35,13 @@ local code_dark_custom_theme = {
     },
 }
 
+]]--
+
 -- Taken from Lualine's internals and tweaked
 local function padded_progress()
     local cur = vim.fn.line('.')
     local total = vim.fn.line('$')
-    
+
     if cur == 1 then
         return 'Top'
     elseif cur == total then
@@ -70,14 +73,14 @@ require('lualine').setup {
     },
     sections = {
         lualine_a = {
-            { 'mode', separator = { left = '', right = '' }, right_padding = 2 },
+            { 'mode', --[[separator = { left = '', right = '' },]] left_padding = 1 },
         },
         lualine_b = {'branch', 'diff', 'diagnostics'},
         lualine_c = {'filename'},
         lualine_x = {'encoding', 'fileformat', 'filetype'},
         lualine_y = { padded_progress },
         lualine_z = {
-            { 'location', separator = { left = '', right = '' }, left_padding = 2 },
+            { 'location', --[[separator = { left = '', right = '' },]] right_padding = 1 },
         }
     },
     inactive_sections = {
@@ -92,4 +95,5 @@ require('lualine').setup {
     winbar = {},
     inactive_winbar = {},
     extensions = {}
+    
 }

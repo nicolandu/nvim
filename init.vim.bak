@@ -42,12 +42,13 @@ call plug#begin()
     Plug 'nvim-lualine/lualine.nvim'
     Plug 'preservim/nerdtree'
     Plug 'mbbill/undotree'
+    Plug 'lambdalisue/suda.vim'    
     
 call plug#end()
 " end vim-plug
 
 
-" lua call for lualine config (custom file)
+" lua call for lualine/lsp config (custom file)
 lua require('nvim-lualine-config')
 
 let g:undotree_SetFocusWhenToggle = 1
