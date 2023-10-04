@@ -34,7 +34,7 @@ call plug#begin()
     " Theming
     Plug 'morhetz/gruvbox'
     Plug 'nvim-lualine/lualine.nvim'
-    Plug 'ryanoasis/vim-devicons'
+    Plug 'nvim-tree/nvim-web-devicons'
     Plug 'lewis6991/gitsigns.nvim', {'commit': 'd7e0bcbe45bd9d5d106a7b2e11dc15917d272c7a'}
     
     " Commands/UI
@@ -42,7 +42,8 @@ call plug#begin()
     Plug 'mbbill/undotree'
     Plug 'lambdalisue/suda.vim'    
     Plug 'kdheepak/lazygit.nvim'
-
+    Plug 'tpope/vim-surround'
+    Plug 'justinmk/vim-sneak'
 
     " LSP Support
     Plug 'neovim/nvim-lspconfig'
@@ -70,6 +71,7 @@ require('nvim-lualine-config') -- custom file to offload options
 require('gitsigns').setup()
 
 vim.g.undotree_SetFocusWhenToggle = 1
+vim.g['sneak#label'] = 1
 
 -- LSP STUFF
 
@@ -113,6 +115,7 @@ require('lspconfig').lua_ls.setup({settings =
         },
     },
 })
+require('lspconfig').clangd.setup({})
 
 require('lint').linters_by_ft = {
   python = {'mypy',}
