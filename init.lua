@@ -50,6 +50,7 @@ call plug#begin()
     Plug 'williamboman/mason.nvim'
     Plug 'williamboman/mason-lspconfig.nvim'
     Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'compat-07'}
+    Plug 'ray-x/lsp-signature.nvim'
     
     " Linter support
     Plug 'mfussenegger/nvim-lint'
@@ -71,6 +72,7 @@ require('nvim-lualine-config') -- custom file to offload options
 require('gitsigns').setup()
 
 vim.g.undotree_SetFocusWhenToggle = 1
+
 vim.g['sneak#label'] = 1
 
 -- LSP STUFF
