@@ -50,7 +50,7 @@ call plug#begin()
     Plug 'williamboman/mason.nvim'
     Plug 'williamboman/mason-lspconfig.nvim'
     Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'compat-07'}
-    Plug 'ray-x/lsp-signature.nvim'
+    Plug 'ray-x/lsp_signature.nvim'
     
     " Linter support
     Plug 'mfussenegger/nvim-lint'
@@ -129,6 +129,8 @@ vim.api.nvim_create_autocmd({ "BufWritePost" }, {
   end,
 })
 
+require('lsp_signature').setup({})
+
 -- Keybinds
 vim.opt.timeout = true -- leader key
 vim.opt.timeoutlen = 750 -- ms
@@ -176,6 +178,7 @@ nmap('<leader>h', ':nohls<cr>')
 
 nmap('<leader>nt', ':silent NERDTreeMirror | :NERDTreeFocus<cr>')
 nmap('<leader>ut', ':UndotreeShow<cr>')
+nmap('<leader>lg', ':LazyGit<cr>')
 
 xmap('<leader>p', '"_dP') -- delete into black hole, then paste backward
 xmap('<leader>P', '"_d"+P') -- same, but from system clipboard
