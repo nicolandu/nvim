@@ -42,7 +42,7 @@ call plug#begin()
     Plug 'mbbill/undotree'
     Plug 'lambdalisue/suda.vim'    
     Plug 'kdheepak/lazygit.nvim'
-    Plug 'tpope/vim-surround'
+    Plug 'kylechui/nvim-surround'
     Plug 'justinmk/vim-sneak'
 
     " LSP Support
@@ -60,7 +60,8 @@ call plug#begin()
     Plug 'hrsh7th/cmp-nvim-lsp'
     Plug 'L3MON4D3/LuaSnip'
 
-
+    " GDB
+    Plug 'sakhnik/nvim-gdb'
 
 call plug#end()
 ]])
@@ -79,7 +80,7 @@ vim.g['sneak#label'] = 1
 
 local lsp_zero = require('lsp-zero')
 
-lsp_zero.on_attach(function(client, bufnr)
+lsp_zero.on_attach(function(_ --[[client]], bufnr)
     -- see :help lsp-zero-keybindings
     -- to learn the available actions
     lsp_zero.default_keymaps({buffer = bufnr})
@@ -93,8 +94,8 @@ require('mason-lspconfig').setup({
     },
 })
 
-require('lspconfig').lua_ls.setup({settings =
-    {
+require('lspconfig').lua_ls.setup({
+    settings = {
         Lua = {
             runtime = {
                 -- Tell the language server which version of Lua you're using
@@ -117,7 +118,13 @@ require('lspconfig').lua_ls.setup({settings =
         },
     },
 })
-require('lspconfig').clangd.setup({})
+require('lspconfig').clangd.setup({
+    settings= {
+        Clangd = {
+            cmd = {'clangd', '-header-insertion=never'}
+        }
+    }
+})
 
 require('lint').linters_by_ft = {
   python = {'mypy',}
@@ -130,6 +137,8 @@ vim.api.nvim_create_autocmd({ "BufWritePost" }, {
 })
 
 require('lsp_signature').setup({})
+
+require('nvim-surround').setup({})
 
 -- Keybinds
 vim.opt.timeout = true -- leader key
@@ -150,15 +159,15 @@ local function nmap_nosilent(shortcut, command, expr)
 end
 
 local function imap(shortcut, command, expr)
-    map('i', shortcut, command, expr, false)
+    map('i', shortcut, command, expr, true)
 end
 
 local function vmap(shortcut, command, expr)
-    map('v', shortcut, command, expr, false)
+    map('v', shortcut, command, expr, true)
 end
 
 local function xmap(shortcut, command, expr)
-    map('x', shortcut, command, expr, false)
+    map('x', shortcut, command, expr, true)
 end
 
 -- without count, j/k skip visual lines
@@ -172,6 +181,7 @@ vmap('<leader>', '<nop>') -- visual and select mode
 
 nmap_nosilent('<leader>te', ':tabe ')
 nmap('<leader>tn', ':tabnew<cr>')
+nmap('<leader>ta', ':tab all<cr>')
 nmap_nosilent('<leader>tm', ':tabm ')
 
 nmap('<leader>h', ':nohls<cr>')
@@ -196,6 +206,14 @@ nmap('<leader>c', '"_c')
 nmap('<leader>x', '"_x')
 nmap('<leader>s', '"_s')
 
+local function quickfix()
+    vim.lsp.buf.code_action({
+        filter = function(a) return a.isPreferred end,
+        apply = true
+    })
+end
+vim.keymap.set('n', '<leader>qf', quickfix, {noremap=true, silent=true})
+
 -- difficult to port to lua, so just embed
 vim.cmd([[
 let g:esc_j_lasttime = 0
@@ -208,6 +226,8 @@ function! JKescape(key)
 endfunction
 inoremap <expr> j JKescape('j')
 inoremap <expr> k JKescape('k')
+tnoremap <expr> j JKescape('j')
+tnoremap <expr> k JKescape('k')
 ]])
 
 -- LSP keybinds
