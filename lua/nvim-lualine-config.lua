@@ -13,12 +13,12 @@ local function padded_progress()
     end
 end
 
-require('lualine').setup {
+return {
     options = {
         icons_enabled = true,
         theme = 'auto',
         component_separators = '|',
-        section_separators = { left = '', right = ''},
+        section_separators = { left = '', right = '' },
         disabled_filetypes = {
             statusline = {},
             winbar = {},
@@ -36,9 +36,9 @@ require('lualine').setup {
         lualine_a = {
             { 'mode', --[[separator = { left = '', right = '' },]] left_padding = 1 },
         },
-        lualine_b = {'branch', 'diff', 'diagnostics'},
-        lualine_c = {'filename'},
-        lualine_x = {'encoding', 'fileformat', 'filetype'},
+        lualine_b = { 'branch', 'diff', 'diagnostics' },
+        lualine_c = { 'filename' },
+        lualine_x = { 'encoding', 'fileformat', 'filetype' },
         lualine_y = { padded_progress },
         lualine_z = {
             { 'location', --[[separator = { left = '', right = '' },]] right_padding = 1 },
@@ -47,8 +47,8 @@ require('lualine').setup {
     inactive_sections = {
         lualine_a = {},
         lualine_b = {},
-        lualine_c = {'filename'},
-        lualine_x = {'location'},
+        lualine_c = { 'filename' },
+        lualine_x = { 'location' },
         lualine_y = {},
         lualine_z = {}
     },

@@ -1,18 +1,31 @@
-vim.opt.mouse = "" -- disable mouse COMPLETELY
+-- no startup screen (equiv. to [blah blah blah].append([blah blah blah], 'I'))
+vim.opt.shortmess:append('I')
+
+vim.opt.mouse = ''    -- disable mouse COMPLETELY
 vim.opt.scrolloff = 5 -- 5 lines above/below cursor
 
 vim.opt.number = true
 vim.opt.relativenumber = true -- turn on hybrid line numbers
 
-vim.opt.showmode = false -- already in status line
+vim.opt.showmode = false      -- already in status line
+vim.opt.signcolumn = 'yes'
 
-vim.opt.colorcolumn = {80} -- visual indicator for good coding style
-
--- No comment extension on other lines, except by wrapping
-vim.api.nvim_create_autocmd({"FileType"}, {
-    pattern = {"*"},
+-- Extend comments in insert mode, but not in normal mode
+vim.api.nvim_create_autocmd({ 'FileType' }, {
+    pattern = { '*' },
     callback =
-        function() vim.opt.formatoptions = {o=false, r=false, c=true} end,
+        function()
+            vim.opt.formatoptions = { o = false, r = true, c = true }
+        end,
+})
+
+-- Extend comments in insert mode, but not in normal mode
+vim.api.nvim_create_autocmd({ 'BufWritePre' }, {
+    pattern = { '*' },
+    callback =
+        function()
+            vim.lsp.buf.format()
+        end,
 })
 
 vim.opt.wrap = true
@@ -23,76 +36,57 @@ vim.opt.shiftwidth = 4
 vim.opt.expandtab = true -- use SPACES
 
 vim.opt.autoindent = true
-
 vim.opt.swapfile = false
 
-vim.g.mapleader = " " -- space
+vim.g.mapleader = ' ' -- space
 
+-- Set completeopt to have a better completion experience
+-- :help completeopt
+-- menuone: popup even when there's only one match
+-- noinsert: Do not insert text until a selection is made
+-- noselect: Do not select, force to select one from the menu
+-- shortness: avoid showing extra messages when using completion
+-- updatetime: set updatetime for CursorHold
+vim.opt.completeopt = { 'menuone', 'noselect', 'noinsert' }
+vim.opt.shortmess = vim.opt.shortmess + { c = true }
+vim.api.nvim_set_option('updatetime', 300)
+
+-- Fixed column for diagnostics to appear
+-- Show autodiagnostic popup on cursor hover_range
+-- Goto previous / next diagnostic warning / error
+-- Show inlay_hints more frequently
 vim.cmd([[
-call plug#begin()
-
-    " Theming
-    Plug 'morhetz/gruvbox'
-    Plug 'nvim-lualine/lualine.nvim'
-    Plug 'nvim-tree/nvim-web-devicons'
-    Plug 'lewis6991/gitsigns.nvim', {'commit': 'd7e0bcbe45bd9d5d106a7b2e11dc15917d272c7a'}
-    
-    " Commands/UI
-    Plug 'preservim/nerdtree'
-    Plug 'mbbill/undotree'
-    Plug 'lambdalisue/suda.vim'    
-    Plug 'kdheepak/lazygit.nvim'
-    Plug 'kylechui/nvim-surround'
-    Plug 'justinmk/vim-sneak'
-
-    " LSP Support
-    Plug 'neovim/nvim-lspconfig'
-    Plug 'williamboman/mason.nvim'
-    Plug 'williamboman/mason-lspconfig.nvim'
-    Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'compat-07'}
-    Plug 'ray-x/lsp_signature.nvim'
-    
-    " Linter support
-    Plug 'mfussenegger/nvim-lint'
-
-    " Autocompletion
-    Plug 'hrsh7th/nvim-cmp'
-    Plug 'hrsh7th/cmp-nvim-lsp'
-    Plug 'L3MON4D3/LuaSnip'
-
-    " GDB
-    Plug 'sakhnik/nvim-gdb'
-
-call plug#end()
+set signcolumn=yes
+autocmd CursorHold * lua vim.diagnostic.open_float(nil, { focusable = false })
 ]])
 
+local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
+if not vim.loop.fs_stat(lazypath) then
+    vim.fn.system({
+        'git',
+        'clone',
+        '--filter=blob:none',
+        'https://github.com/folke/lazy.nvim.git',
+        '--branch=stable', -- latest stable release
+        lazypath,
+    })
+end
+vim.opt.rtp:prepend(lazypath)
+
+require('lazy').setup('plugins')
+
+require('gruvbox').setup({})
 vim.cmd('colorscheme gruvbox')
+vim.cmd('hi link GitSignsAdd GruvboxGreenSign')
+vim.cmd('hi link GitSignsChange GruvboxAquaSign')
+vim.cmd('hi link GitSignsDelete GruvboxRedSign')
 
-require('nvim-lualine-config') -- custom file to offload options
+require('gitsigns').setup({})
 
-require('gitsigns').setup()
-
-vim.g.undotree_SetFocusWhenToggle = 1
-
-vim.g['sneak#label'] = 1
-
--- LSP STUFF
-
-local lsp_zero = require('lsp-zero')
-
-lsp_zero.on_attach(function(_ --[[client]], bufnr)
-    -- see :help lsp-zero-keybindings
-    -- to learn the available actions
-    lsp_zero.default_keymaps({buffer = bufnr})
-end)
+require('nvim-surround').setup({})
 
 require('mason').setup({})
-require('mason-lspconfig').setup({
-    ensure_installed = {},
-    handlers = {
-        lsp_zero.default_setup,
-    },
-})
+require('mason-lspconfig').setup({})
 
 require('lspconfig').lua_ls.setup({
     settings = {
@@ -100,48 +94,131 @@ require('lspconfig').lua_ls.setup({
             runtime = {
                 -- Tell the language server which version of Lua you're using
                 -- (most likely LuaJIT in the case of Neovim)
-                version = "LuaJIT",
+                version = 'LuaJIT',
             },
             diagnostics = {
                 -- Get the language server to recognize the `vim` global
-                globals = { "vim" },
+                globals = { 'vim' },
             },
             workspace = {
                 -- Make the server aware of Neovim runtime files
-                library = vim.api.nvim_get_runtime_file("", true),
-            },
-            -- Do not send telemetry data containing
-            -- a randomized but unique identifier
-            telemetry = {
-                enable = false,
+                library = vim.api.nvim_get_runtime_file('', true),
+                -- No Luassert
+                checkThirdParty = false,
             },
         },
     },
 })
+
+require('lspconfig').rust_analyzer.setup({
+    settings = {
+        ["rust-analyzer"] = {
+            check = {
+                command = "clippy",
+            },
+        },
+    }
+})
+
 require('lspconfig').clangd.setup({
-    settings= {
+    settings = {
         Clangd = {
-            cmd = {'clangd', '-header-insertion=never'}
+            cmd = { 'clangd', '-header-insertion=never' }
         }
     }
 })
 
-require('lint').linters_by_ft = {
-  python = {'mypy',}
-}
 
-vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-  callback = function()
-    require("lint").try_lint()
-  end,
+-- Completion Plugin Setup
+local cmp = require 'cmp'
+cmp.setup({
+    -- Enable LSP snippets
+    snippet = {
+        expand = function(args)
+            vim.fn["vsnip#anonymous"](args.body)
+        end,
+    },
+    mapping = {
+        ['<C-p>'] = cmp.mapping.select_prev_item(),
+        ['<C-n>'] = cmp.mapping.select_next_item(),
+        -- Add tab support
+        ['<S-Tab>'] = cmp.mapping.select_prev_item(),
+        ['<Tab>'] = cmp.mapping.select_next_item(),
+        ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+        ['<C-f>'] = cmp.mapping.scroll_docs(4),
+        ['<C-Space>'] = cmp.mapping.complete(),
+        ['<C-e>'] = cmp.mapping.close(),
+        ['<CR>'] = cmp.mapping.confirm({
+            behavior = cmp.ConfirmBehavior.Insert,
+            select = true,
+        })
+    },
+    -- Installed sources:
+    sources = {
+        { name = 'path' },                                       -- file paths
+        { name = 'nvim_lsp',               keyword_length = 3 }, -- from language server
+        { name = 'nvim_lsp_signature_help' },                    -- display function signatures with current parameter emphasized
+        { name = 'nvim_lua',               keyword_length = 2 }, -- complete neovim's Lua runtime API such vim.lsp.*
+        { name = 'buffer',                 keyword_length = 2 }, -- source current buffer
+        { name = 'vsnip',                  keyword_length = 2 }, -- nvim-cmp source for vim-vsnip
+        { name = 'calc' },                                       -- source for math calculation
+    },
+    window = {
+        completion = cmp.config.window.bordered(),
+        documentation = cmp.config.window.bordered(),
+    },
+    formatting = {
+        fields = { 'menu', 'abbr', 'kind' },
+        format = function(entry, item)
+            local menu_icon = {
+                nvim_lsp = 'λ',
+                vsnip = '⋗',
+                buffer = 'Ω',
+                path = '🖫',
+            }
+            item.menu = menu_icon[entry.source.name]
+            return item
+        end,
+    },
 })
 
-require('lsp_signature').setup({})
+-- Treesitter Plugin Setup
+require('nvim-treesitter.configs').setup {
+    ensure_installed = { "lua", "rust", "toml" },
+    auto_install = true,
+    highlight = {
+        enable = true,
+        additional_vim_regex_highlighting = false,
+    },
+    ident = { enable = true },
+    rainbow = {
+        enable = true,
+        extended_mode = true,
+        max_file_lines = nil,
+    }
+}
 
-require('nvim-surround').setup({})
+local rt = require("rust-tools")
+
+rt.setup({
+    server = {
+        on_attach = function(_, bufnr)
+            -- Hover actions
+            vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = bufnr })
+            -- Code action groups
+            vim.keymap.set("n", "<Leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
+        end,
+    },
+})
+
+local signs = { Error = "", Warn = "", Hint = "", Info = "" }
+for type, icon in pairs(signs) do
+    local hl = "DiagnosticSign" .. type
+    vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
 
 -- Keybinds
-vim.opt.timeout = true -- leader key
+vim.opt.timeout = true   -- leader key
 vim.opt.timeoutlen = 750 -- ms
 
 local function map(mode, shortcut, command, expr, silent)
@@ -186,14 +263,17 @@ nmap_nosilent('<leader>tm', ':tabm ')
 
 nmap('<leader>h', ':nohls<cr>')
 
-nmap('<leader>nt', ':silent NERDTreeMirror | :NERDTreeFocus<cr>')
-nmap('<leader>ut', ':UndotreeShow<cr>')
+nmap('<leader>nt', ':NvimTreeOpen<cr>')
+nmap('<leader>fb', ':Telescope file_browser path=%:p:h select_buffer=true<cr>')
+nmap('<leader>ff', ':Telescope find_files<cr>')
+nmap('<leader>fn', ':tabnew | Telescope find_files<cr>')
+nmap('<leader>fN', ':-1tabnew | Telescope find_files<cr>')
 nmap('<leader>lg', ':LazyGit<cr>')
 
-xmap('<leader>p', '"_dP') -- delete into black hole, then paste backward
+xmap('<leader>p', '"_dP')   -- delete into black hole, then paste backward
 xmap('<leader>P', '"_d"+P') -- same, but from system clipboard
 
-nmap('<leader>p', '"+p') -- paste from system clipboard
+nmap('<leader>p', '"+p')    -- paste from system clipboard
 nmap('<leader>P', '"+P')
 
 nmap('<leader>y', '"+y') -- yank to system clipboard
@@ -206,13 +286,15 @@ nmap('<leader>c', '"_c')
 nmap('<leader>x', '"_x')
 nmap('<leader>s', '"_s')
 
+
 local function quickfix()
     vim.lsp.buf.code_action({
         filter = function(a) return a.isPreferred end,
         apply = true
     })
 end
-vim.keymap.set('n', '<leader>qf', quickfix, {noremap=true, silent=true})
+vim.keymap.set('n', '<leader>cc', quickfix, { noremap = true, silent = true })
+nmap('<leader>ca', ':CodeActionMenu<cr>')
 
 -- difficult to port to lua, so just embed
 vim.cmd([[
@@ -228,16 +310,6 @@ inoremap <expr> j JKescape('j')
 inoremap <expr> k JKescape('k')
 tnoremap <expr> j JKescape('j')
 tnoremap <expr> k JKescape('k')
+vnoremap <expr> j JKescape('j')
+vnoremap <expr> k JKescape('k')
 ]])
-
--- LSP keybinds
-local cmp = require('cmp')
-local cmp_action = require('lsp-zero').cmp_action()
-
-cmp.setup({
-    mapping = cmp.mapping.preset.insert({
-        ['<CR>'] = cmp.mapping.confirm({select = false}),
-        ['<Tab>'] = cmp_action.luasnip_supertab(),
-        ['<S-Tab>'] = cmp_action.luasnip_shift_supertab(),
-    }),
-})
