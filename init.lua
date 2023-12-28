@@ -19,14 +19,6 @@ vim.api.nvim_create_autocmd({ 'FileType' }, {
         end,
 })
 
--- Extend comments in insert mode, but not in normal mode
-vim.api.nvim_create_autocmd({ 'BufWritePre' }, {
-    pattern = { '*' },
-    callback =
-        function()
-            vim.lsp.buf.format()
-        end,
-})
 
 vim.opt.wrap = true
 vim.opt.linebreak = true
@@ -88,6 +80,8 @@ require('nvim-surround').setup({})
 require('mason').setup({})
 require('mason-lspconfig').setup({})
 
+require('renamer').setup({})
+
 require('lspconfig').lua_ls.setup({
     settings = {
         Lua = {
@@ -108,16 +102,6 @@ require('lspconfig').lua_ls.setup({
             },
         },
     },
-})
-
-require('lspconfig').rust_analyzer.setup({
-    settings = {
-        ["rust-analyzer"] = {
-            check = {
-                command = "clippy",
-            },
-        },
-    }
 })
 
 require('lspconfig').clangd.setup({
@@ -148,7 +132,7 @@ cmp.setup({
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
         ['<C-Space>'] = cmp.mapping.complete(),
         ['<C-e>'] = cmp.mapping.close(),
-        ['<CR>'] = cmp.mapping.confirm({
+        ['<cr>'] = cmp.mapping.confirm({
             behavior = cmp.ConfirmBehavior.Insert,
             select = true,
         })
@@ -206,8 +190,16 @@ rt.setup({
             -- Hover actions
             vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = bufnr })
             -- Code action groups
-            vim.keymap.set("n", "<Leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
+            vim.keymap.set("n", "<leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
         end,
+
+        settings = {
+            ["rust-analyzer"] = {
+                checkOnSave = {
+                    command = "clippy",
+                },
+            },
+        },
     },
 })
 
@@ -269,6 +261,7 @@ nmap('<leader>ff', ':Telescope find_files<cr>')
 nmap('<leader>fn', ':tabnew | Telescope find_files<cr>')
 nmap('<leader>fN', ':-1tabnew | Telescope find_files<cr>')
 nmap('<leader>lg', ':LazyGit<cr>')
+nmap('<leader>tr', '<cmd>exe v:count1 . "ToggleTerm"<cr>')
 
 xmap('<leader>p', '"_dP')   -- delete into black hole, then paste backward
 xmap('<leader>P', '"_d"+P') -- same, but from system clipboard
@@ -293,8 +286,27 @@ local function quickfix()
         apply = true
     })
 end
-vim.keymap.set('n', '<leader>cc', quickfix, { noremap = true, silent = true })
+
+local opts = { noremap = true, silent = true }
+
+vim.keymap.set('n', '<leader>cc', quickfix, opts)
 nmap('<leader>ca', ':CodeActionMenu<cr>')
+
+vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
+vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+vim.keymap.set('n', '<leader>o', vim.diagnostic.open_float, opts)
+vim.keymap.set('n', '<leader>D', vim.lsp.buf.type_definition, opts)
+vim.keymap.set('n', '<f2>', vim.lsp.buf.rename, opts)
+vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
+vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
+vim.keymap.set('n', '<f3>', vim.lsp.buf.format, opts)
+
+vim.keymap.set({ 'n', 'v' }, '<leader>rn', require('renamer').rename, opts)
+vim.keymap.set('i', '<f2>', require('renamer').rename, opts)
 
 -- difficult to port to lua, so just embed
 vim.cmd([[
@@ -313,3 +325,12 @@ tnoremap <expr> k JKescape('k')
 vnoremap <expr> j JKescape('j')
 vnoremap <expr> k JKescape('k')
 ]])
+
+
+vim.api.nvim_create_autocmd({ 'BufWritePre' }, {
+    pattern = { '*' },
+    callback =
+        function()
+            vim.lsp.buf.format()
+        end,
+})

@@ -42,7 +42,17 @@ return {
         },
     },
     { 'kdheepak/lazygit.nvim', },
+    { 'akinsho/toggleterm.nvim', version = '*', config = true },
     { 'kylechui/nvim-surround', },
+
+    {
+        'filipdutescu/renamer.nvim',
+        branch = 'master',
+        requires = {
+            { 'nvim-lua/plenary.nvim' }
+        }
+    },
+
     {
         'ggandor/leap.nvim',
         init = function()
@@ -71,12 +81,15 @@ return {
     { 'williamboman/mason.nvim', },
     { 'williamboman/mason-lspconfig.nvim', },
     { 'neovim/nvim-lspconfig', },
+    { 'simrat39/rust-tools.nvim' },
+
+    -- Debugging
+    { 'nvim-lua/plenary.nvim', },
+    { 'mfussenegger/nvim-dap', },
 
     -- Treesitter
     { 'nvim-treesitter/nvim-treesitter', },
 
-    -- Autocompletion
-    { 'simrat39/rust-tools.nvim' },
     -- Completion framework:
     { 'hrsh7th/nvim-cmp' },
 
@@ -91,4 +104,9 @@ return {
     { 'hrsh7th/cmp-buffer' },
     { 'hrsh7th/vim-vsnip' },
     { 'hrsh7th/cmp-nvim-lsp', },
+
+    -- Code actions
+    {
+        'weilbith/nvim-code-action-menu',
+    },
 }
