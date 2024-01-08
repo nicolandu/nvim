@@ -29,6 +29,7 @@ vim.opt.expandtab = true -- use SPACES
 
 vim.opt.autoindent = true
 vim.opt.swapfile = false
+vim.opt.lazyredraw = true
 
 vim.g.mapleader = ' ' -- space
 
@@ -70,52 +71,36 @@ require('lazy').setup('plugins')
 require('gruvbox').setup({})
 vim.cmd('colorscheme gruvbox')
 vim.cmd('hi link GitSignsAdd GruvboxGreenSign')
-vim.cmd('hi link GitSignsChange GruvboxAquaSign')
+vim.cmd('hi link GitSignsChange GruvboxBlueSign')
 vim.cmd('hi link GitSignsDelete GruvboxRedSign')
 
 require('gitsigns').setup({})
 
 require('nvim-surround').setup({})
+require('leap').add_default_mappings()
 
 require('mason').setup({})
 require('mason-lspconfig').setup({})
 
 require('renamer').setup({})
 
-require('lspconfig').lua_ls.setup({
-    settings = {
-        Lua = {
-            runtime = {
-                -- Tell the language server which version of Lua you're using
-                -- (most likely LuaJIT in the case of Neovim)
-                version = 'LuaJIT',
-            },
-            diagnostics = {
-                -- Get the language server to recognize the `vim` global
-                globals = { 'vim' },
-            },
-            workspace = {
-                -- Make the server aware of Neovim runtime files
-                library = vim.api.nvim_get_runtime_file('', true),
-                -- No Luassert
-                checkThirdParty = false,
-            },
-        },
-    },
-})
-
-require('lspconfig').clangd.setup({
-    settings = {
-        Clangd = {
-            cmd = { 'clangd', '-header-insertion=never' }
-        }
-    }
-})
-
-
 -- Completion Plugin Setup
-local cmp = require 'cmp'
+
+local has_words_before = function()
+    unpack = unpack or table.unpack
+    local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+    return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
+end
+
+local feedkey = function(key, mode)
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(key, true, true, true), mode, true)
+end
+
+local cmp = require('cmp')
 cmp.setup({
+    view = {
+        entries = { name = 'custom', selection_order = 'near_cursor' }
+    },
     -- Enable LSP snippets
     snippet = {
         expand = function(args)
@@ -126,8 +111,25 @@ cmp.setup({
         ['<C-p>'] = cmp.mapping.select_prev_item(),
         ['<C-n>'] = cmp.mapping.select_next_item(),
         -- Add tab support
-        ['<S-Tab>'] = cmp.mapping.select_prev_item(),
-        ['<Tab>'] = cmp.mapping.select_next_item(),
+        ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_next_item()
+            elseif vim.fn["vsnip#available"](1) == 1 then
+                feedkey("<Plug>(vsnip-expand-or-jump)", "")
+            elseif has_words_before() then
+                cmp.complete()
+            else
+                fallback() -- The fallback function sends a already mapped key. In this case, it's probably `<Tab>`.
+            end
+        end, { "i", "s" }),
+
+        ["<S-Tab>"] = cmp.mapping(function()
+            if cmp.visible() then
+                cmp.select_prev_item()
+            elseif vim.fn["vsnip#jumpable"](-1) == 1 then
+                feedkey("<Plug>(vsnip-jump-prev)", "")
+            end
+        end, { "i", "s" }),
         ['<C-b>'] = cmp.mapping.scroll_docs(-4),
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
         ['<C-Space>'] = cmp.mapping.complete(),
@@ -166,25 +168,44 @@ cmp.setup({
     },
 })
 
--- Treesitter Plugin Setup
-require('nvim-treesitter.configs').setup {
-    ensure_installed = { "lua", "rust", "toml" },
-    auto_install = true,
-    highlight = {
-        enable = true,
-        additional_vim_regex_highlighting = false,
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
+require('lspconfig').lua_ls.setup({
+    capabilities = capabilities,
+    settings = {
+        Lua = {
+            runtime = {
+                -- Tell the language server which version of Lua you're using
+                -- (most likely LuaJIT in the case of Neovim)
+                version = 'LuaJIT',
+            },
+            diagnostics = {
+                -- Get the language server to recognize the `vim` global
+                globals = { 'vim' },
+            },
+            workspace = {
+                -- Make the server aware of Neovim runtime files
+                library = vim.api.nvim_get_runtime_file('', true),
+                -- No Luassert
+                checkThirdParty = false,
+            },
+        },
     },
-    ident = { enable = true },
-    rainbow = {
-        enable = true,
-        extended_mode = true,
-        max_file_lines = nil,
+})
+
+require('lspconfig').clangd.setup({
+    capabilities = capabilities,
+    settings = {
+        Clangd = {
+            cmd = { 'clangd', '-header-insertion=never' }
+        }
     }
-}
+})
 
 local rt = require("rust-tools")
 
 rt.setup({
+    capabilities = capabilities,
     server = {
         on_attach = function(_, bufnr)
             -- Hover actions
@@ -202,6 +223,24 @@ rt.setup({
         },
     },
 })
+
+
+-- Treesitter Plugin Setup
+require('nvim-treesitter.configs').setup {
+    ensure_installed = { "lua", "rust", "toml" },
+    auto_install = true,
+    highlight = {
+        enable = true,
+        additional_vim_regex_highlighting = false,
+    },
+    ident = { enable = true },
+    rainbow = {
+        enable = true,
+        extended_mode = true,
+        max_file_lines = nil,
+    }
+}
+
 
 local signs = { Error = "", Warn = "", Hint = "", Info = "" }
 for type, icon in pairs(signs) do
@@ -221,10 +260,6 @@ end
 
 local function nmap(shortcut, command, expr)
     map('n', shortcut, command, expr, true)
-end
-
-local function nmap_nosilent(shortcut, command, expr)
-    map('n', shortcut, command, expr, false)
 end
 
 local function imap(shortcut, command, expr)
@@ -248,20 +283,20 @@ imap('<C-c>', '<esc>')
 nmap('<leader>', '<nop>')
 vmap('<leader>', '<nop>') -- visual and select mode
 
-nmap_nosilent('<leader>te', ':tabe ')
 nmap('<leader>tn', ':tabnew<cr>')
-nmap('<leader>ta', ':tab all<cr>')
-nmap_nosilent('<leader>tm', ':tabm ')
 
 nmap('<leader>h', ':nohls<cr>')
 
 nmap('<leader>nt', ':NvimTreeOpen<cr>')
-nmap('<leader>fb', ':Telescope file_browser path=%:p:h select_buffer=true<cr>')
+
 nmap('<leader>ff', ':Telescope find_files<cr>')
-nmap('<leader>fn', ':tabnew | Telescope find_files<cr>')
-nmap('<leader>fN', ':-1tabnew | Telescope find_files<cr>')
+nmap('<leader>fb', ':Telescope buffers<cr>')
+nmap('<leader>fg', ':Telescope live_grep<cr>')
+nmap('<leader>fs', ':Telescope lsp_document_symbols<cr>')
+nmap('<leader>fd', ':Telescope diagnostics<cr>')
+
 nmap('<leader>lg', ':LazyGit<cr>')
-nmap('<leader>tr', '<cmd>exe v:count1 . "ToggleTerm"<cr>')
+nmap('<leader>te', '<cmd>exe v:count1 . "ToggleTerm"<cr>')
 
 xmap('<leader>p', '"_dP')   -- delete into black hole, then paste backward
 xmap('<leader>P', '"_d"+P') -- same, but from system clipboard

@@ -53,12 +53,7 @@ return {
         }
     },
 
-    {
-        'ggandor/leap.nvim',
-        init = function()
-            require('leap').add_default_mappings()
-        end,
-    },
+    { 'ggandor/leap.nvim', },
 
     {
         'nvim-telescope/telescope.nvim',
@@ -98,12 +93,13 @@ return {
 
     -- Useful completion sources:
     { 'hrsh7th/cmp-nvim-lua' },
+    { 'hrsh7th/cmp-nvim-lsp', },
     { 'hrsh7th/cmp-nvim-lsp-signature-help' },
     { 'hrsh7th/cmp-vsnip' },
     { 'hrsh7th/cmp-path' },
     { 'hrsh7th/cmp-buffer' },
+    { 'hrsh7th/cmp-calc', },
     { 'hrsh7th/vim-vsnip' },
-    { 'hrsh7th/cmp-nvim-lsp', },
 
     -- Code actions
     {
