@@ -1,4 +1,8 @@
--- no startup screen (equiv. to [blah blah blah].append([blah blah blah], 'I'))
+-- Disable netrw at the very start of your init.lua
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
+-- No startup screen (equiv. to [blah blah blah].append([blah blah blah], 'I'))
 vim.opt.shortmess:append('I')
 
 vim.opt.mouse = ''    -- disable mouse COMPLETELY
@@ -29,7 +33,6 @@ vim.opt.expandtab = true -- use SPACES
 
 vim.opt.autoindent = true
 vim.opt.swapfile = false
-vim.opt.lazyredraw = true
 
 vim.g.mapleader = ' ' -- space
 
@@ -79,10 +82,52 @@ require('gitsigns').setup({})
 require('nvim-surround').setup({})
 require('leap').add_default_mappings()
 
+-- Hopfully fixes the invisible cursor?
+vim.api.nvim_create_autocmd(
+    "User",
+    {
+        callback = function()
+            vim.cmd.hi("Cursor", "blend=100")
+            vim.opt.guicursor:append { "a:Cursor/lCursor" }
+        end,
+        pattern = "LeapEnter"
+    }
+)
+vim.api.nvim_create_autocmd(
+    "User",
+    {
+        callback = function()
+            vim.cmd.hi("Cursor", "blend=0")
+            vim.opt.guicursor:remove { "a:Cursor/lCursor" }
+        end,
+        pattern = "LeapLeave"
+    }
+)
+
 require('mason').setup({})
 require('mason-lspconfig').setup({})
 
 require('renamer').setup({})
+
+require('noice').setup({
+    lsp = {
+        -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+        override = {
+            ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
+            ['vim.lsp.util.stylize_markdown'] = true,
+            ['cmp.entry.get_documentation'] = true,
+        },
+    },
+    -- you can enable a preset for easier configuration
+    presets = {
+        bottom_search = true,         -- use a classic bottom cmdline for search
+        command_palette = true,       -- position the cmdline and popupmenu together
+        long_message_to_split = true, -- long messages will be sent to a split
+        inc_rename = false,           -- enables an input dialog for inc-rename.nvim
+        lsp_doc_border = false,       -- add a border to hover docs and signature help
+    },
+})
+
 
 -- Completion Plugin Setup
 
@@ -136,7 +181,7 @@ cmp.setup({
         ['<C-e>'] = cmp.mapping.close(),
         ['<cr>'] = cmp.mapping.confirm({
             behavior = cmp.ConfirmBehavior.Insert,
-            select = true,
+            select = false,
         })
     },
     -- Installed sources:
@@ -192,6 +237,13 @@ require('lspconfig').lua_ls.setup({
         },
     },
 })
+
+require('lspconfig').html.setup({})
+require('lspconfig').bashls.setup({})
+
+-- Toml
+require('lspconfig').taplo.setup({})
+
 
 require('lspconfig').clangd.setup({
     capabilities = capabilities,
@@ -363,7 +415,7 @@ vnoremap <expr> k JKescape('k')
 
 
 vim.api.nvim_create_autocmd({ 'BufWritePre' }, {
-    pattern = { '*' },
+    pattern = { '* silent!' },
     callback =
         function()
             vim.lsp.buf.format()
