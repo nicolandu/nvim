@@ -1,0 +1,2 @@
+setlocal ignorecase
+setlocal smartcase

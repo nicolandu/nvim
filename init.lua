@@ -2,8 +2,12 @@
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
+vim.opt.shell = 'fish'
+
 -- No startup screen (equiv. to [blah blah blah].append([blah blah blah], 'I'))
 vim.opt.shortmess:append('I')
+
+vim.cmd('filetype plugin on')
 
 vim.opt.mouse = ''    -- disable mouse COMPLETELY
 vim.opt.scrolloff = 5 -- 5 lines above/below cursor
@@ -51,8 +55,8 @@ vim.api.nvim_set_option('updatetime', 300)
 -- Show autodiagnostic popup on cursor hover_range
 -- Goto previous / next diagnostic warning / error
 -- Show inlay_hints more frequently
+vim.opt.signcolumn = 'yes'
 vim.cmd([[
-set signcolumn=yes
 autocmd CursorHold * lua vim.diagnostic.open_float(nil, { focusable = false })
 ]])
 
@@ -82,7 +86,7 @@ require('gitsigns').setup({})
 require('nvim-surround').setup({})
 require('leap').add_default_mappings()
 
--- Hopfully fixes the invisible cursor?
+-- Hopefully fixes the invisible cursor?
 vim.api.nvim_create_autocmd(
     "User",
     {
@@ -120,14 +124,20 @@ require('noice').setup({
     },
     -- you can enable a preset for easier configuration
     presets = {
-        bottom_search = true,         -- use a classic bottom cmdline for search
-        command_palette = true,       -- position the cmdline and popupmenu together
-        long_message_to_split = true, -- long messages will be sent to a split
-        inc_rename = false,           -- enables an input dialog for inc-rename.nvim
-        lsp_doc_border = false,       -- add a border to hover docs and signature help
+        bottom_search = true,   -- use a classic bottom cmdline for search
+        command_palette = true, -- position the cmdline and popupmenu together
+        inc_rename = false,     -- enables an input dialog for inc-rename.nvim
+        lsp_doc_border = false, -- add a border to hover docs and signature help
+    },
+
+    -- Override long_message_to_split length
+    routes = {
+        {
+            filter = { event = "msg_show", min_height = 10 },
+            view = "cmdline_output",
+        },
     },
 })
-
 
 -- Completion Plugin Setup
 
@@ -244,6 +254,8 @@ require('lspconfig').bashls.setup({})
 -- Toml
 require('lspconfig').taplo.setup({})
 
+require('lspconfig').tsserver.setup({})
+
 
 require('lspconfig').clangd.setup({
     capabilities = capabilities,
@@ -253,6 +265,53 @@ require('lspconfig').clangd.setup({
         }
     }
 })
+
+vim.g.tex_flavor = "latex"
+require('ltex-ls').setup {
+    capabilities = capabilities,
+    use_spellfile = false,
+    filetypes = { "latex", "tex", "bib", "markdown", "gitcommit", "text" },
+    settings = {
+        ltex = {
+            enabled = { "latex", "tex", "bib", "markdown", },
+            language = "auto",
+            diagnosticSeverity = "information",
+            sentenceCacheSize = 2000,
+            additionalRules = {
+                enablePickyRules = false,
+                motherTongue = "fr",
+            },
+            disabledRules = {
+                fr = { "APOS_TYP", "FRENCH_WHITESPACE" }
+            },
+            checkFrequency = "save",
+            completionEnabled = true,
+            dictionary = (function()
+                -- For dictionary, search for files in the runtime to have
+                -- and include them as externals the format for them is
+                -- dict/{LANG}.txt
+                --
+                -- Also add dict/default.txt to all of them
+                local files = {}
+                for _, file in ipairs(vim.api.nvim_get_runtime_file("dict/*", true)) do
+                    local lang = vim.fn.fnamemodify(file, ":t:r")
+                    local fullpath = vim.fs.normalize(file, ":p")
+                    files[lang] = { ":" .. fullpath }
+                end
+
+                if files.default then
+                    for lang, _ in pairs(files) do
+                        if lang ~= "default" then
+                            vim.list_extend(files[lang], files.default)
+                        end
+                    end
+                    files.default = nil
+                end
+                return files
+            end)(),
+        },
+    },
+}
 
 local rt = require("rust-tools")
 
@@ -326,6 +385,10 @@ local function xmap(shortcut, command, expr)
     map('x', shortcut, command, expr, true)
 end
 
+local function tmap(shortcut, command, expr)
+    map('t', shortcut, command, expr, true)
+end
+
 -- without count, j/k skip visual lines
 nmap('j', "v:count ? 'j' : 'gj'", true) -- enable vim expr mode (last param)
 nmap('k', "v:count ? 'k' : 'gk'", true)
@@ -340,6 +403,7 @@ nmap('<leader>tn', ':tabnew<cr>')
 nmap('<leader>h', ':nohls<cr>')
 
 nmap('<leader>nt', ':NvimTreeOpen<cr>')
+nmap('<leader>nT', ':NvimTreeOpen .<cr>')
 
 nmap('<leader>ff', ':Telescope find_files<cr>')
 nmap('<leader>fb', ':Telescope buffers<cr>')
@@ -347,8 +411,7 @@ nmap('<leader>fg', ':Telescope live_grep<cr>')
 nmap('<leader>fs', ':Telescope lsp_document_symbols<cr>')
 nmap('<leader>fd', ':Telescope diagnostics<cr>')
 
-nmap('<leader>lg', ':LazyGit<cr>')
-nmap('<leader>te', '<cmd>exe v:count1 . "ToggleTerm"<cr>')
+nmap('gx', [[:execute '!open ' . shellescape(expand('<cfile>'), 1)<cr>]])
 
 xmap('<leader>p', '"_dP')   -- delete into black hole, then paste backward
 xmap('<leader>P', '"_d"+P') -- same, but from system clipboard
@@ -365,6 +428,9 @@ vmap('<leader>d', '"_d')
 nmap('<leader>c', '"_c')
 nmap('<leader>x', '"_x')
 nmap('<leader>s', '"_s')
+
+tmap('<esc>', '<C-\\><C-N>')
+tmap('<C-W>', '<C-\\><C-N><C-W>')
 
 
 local function quickfix()
@@ -414,10 +480,13 @@ vnoremap <expr> k JKescape('k')
 ]])
 
 
-vim.api.nvim_create_autocmd({ 'BufWritePre' }, {
-    pattern = { '* silent!' },
-    callback =
-        function()
-            vim.lsp.buf.format()
-        end,
+vim.cmd("autocmd BufWritePre * lua vim.lsp.buf.format()")
+
+vim.api.nvim_create_autocmd({ "TermOpen", "BufEnter" }, {
+    pattern = { "*" },
+    callback = function()
+        if vim.opt.buftype:get() == "terminal" then
+            vim.cmd(":startinsert")
+        end
+    end
 })

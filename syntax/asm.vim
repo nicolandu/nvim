@@ -97,4 +97,3 @@ let b:current_syntax = "asm"
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
-

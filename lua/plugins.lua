@@ -6,6 +6,11 @@ return {
         priority = 1000,
     },
 
+    {
+        'jdhao/whitespace.nvim',
+        lazy = false
+    },
+
     -- UI
 
     {
@@ -14,6 +19,7 @@ return {
     },
 
     { 'nvim-tree/nvim-web-devicons', },
+
 
     {
         'lewis6991/gitsigns.nvim',
@@ -37,12 +43,9 @@ return {
         dependencies = 'nvim-lua/plenary.nvim',
         config = true,
         keys = { -- load the plugin only when using it's keybinding:
-            {
-                '<leader>u', '<cmd>lua require("undotree").toggle()<cr>' },
+            { '<leader>u', '<cmd>lua require("undotree").toggle()<cr>' },
         },
     },
-    { 'kdheepak/lazygit.nvim', },
-    { 'akinsho/toggleterm.nvim', version = '*', config = true },
     { 'kylechui/nvim-surround', },
 
     {
@@ -101,16 +104,19 @@ return {
 
     -- Useful completion sources:
     { 'hrsh7th/cmp-nvim-lua' },
-    { 'hrsh7th/cmp-nvim-lsp', },
+    { 'hrsh7th/cmp-nvim-lsp' },
     { 'hrsh7th/cmp-nvim-lsp-signature-help' },
     { 'hrsh7th/cmp-vsnip' },
     { 'hrsh7th/cmp-path' },
     { 'hrsh7th/cmp-buffer' },
-    { 'hrsh7th/cmp-calc', },
+    { 'hrsh7th/cmp-calc' },
     { 'hrsh7th/vim-vsnip' },
 
+    -- Spelling
+    { 'vigoux/ltex-ls.nvim' },
+
     -- Code actions
-    {
-        'weilbith/nvim-code-action-menu',
-    },
+    { 'weilbith/nvim-code-action-menu', },
+
+    { 'matthiasquintern/vim-ca65' },
 }
