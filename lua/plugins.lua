@@ -51,7 +51,7 @@ return {
     {
         'filipdutescu/renamer.nvim',
         branch = 'master',
-        requires = {
+        dependencies = {
             { 'nvim-lua/plenary.nvim' }
         }
     },
@@ -94,7 +94,12 @@ return {
     { 'mfussenegger/nvim-dap', },
 
     -- Treesitter
-    { 'nvim-treesitter/nvim-treesitter', },
+    {
+        "nvim-treesitter/nvim-treesitter",
+        build = function()
+            require("nvim-treesitter.install").update({ with_sync = true })()
+        end,
+    },
 
     -- Completion framework:
     { 'hrsh7th/nvim-cmp' },

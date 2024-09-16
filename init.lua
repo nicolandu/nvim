@@ -51,6 +51,9 @@ vim.opt.completeopt = { 'menuone', 'noselect', 'noinsert' }
 vim.opt.shortmess = vim.opt.shortmess + { c = true }
 vim.api.nvim_set_option('updatetime', 300)
 
+-- increment/decrement letters
+vim.opt.nrformats:append('alpha')
+
 -- Fixed column for diagnostics to appear
 -- Show autodiagnostic popup on cursor hover_range
 -- Goto previous / next diagnostic warning / error
@@ -136,6 +139,15 @@ require('noice').setup({
             filter = { event = "msg_show", min_height = 10 },
             view = "cmdline_output",
         },
+        {
+            view = "mini",
+            filter = {
+                event = "msg_showmode",
+                any = {
+                    { find = "recording" },
+                },
+            },
+        },
     },
 })
 
@@ -152,6 +164,7 @@ local feedkey = function(key, mode)
 end
 
 local cmp = require('cmp')
+---@diagnostic disable-next-line: redundant-parameter
 cmp.setup({
     view = {
         entries = { name = 'custom', selection_order = 'near_cursor' }
@@ -249,13 +262,42 @@ require('lspconfig').lua_ls.setup({
 })
 
 require('lspconfig').html.setup({})
+require('lspconfig').cssls.setup({})
+
 require('lspconfig').bashls.setup({})
 
 -- Toml
 require('lspconfig').taplo.setup({})
 
 require('lspconfig').tsserver.setup({})
-
+require('lspconfig').pylsp.setup {
+    --on_attach = [custom_attach],
+    settings = {
+        pylsp = {
+            plugins = {
+                -- formatter options
+                autopep8 = { enabled = true },
+                yapf = { enabled = false },
+                -- linter options
+                pyflakes = { enabled = false },
+                pycodestyle = { enabled = false },
+                -- type checker
+                pylsp_mypy = {
+                    enabled = true,
+                    live_mode = false,
+                },
+                -- auto-completion options
+                jedi_completion = { fuzzy = true },
+                -- import sorting
+                pyls_isort = { enabled = true },
+            },
+        },
+    },
+    flags = {
+        debounce_text_changes = 200,
+    },
+    capabilities = capabilities,
+}
 
 require('lspconfig').clangd.setup({
     capabilities = capabilities,
