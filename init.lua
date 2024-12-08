@@ -18,6 +18,8 @@ vim.opt.relativenumber = true -- turn on hybrid line numbers
 vim.opt.showmode = false      -- already in status line
 vim.opt.signcolumn = 'yes'
 
+vim.opt.syntax = 'on' -- auto-apply custom per-lang syntax
+
 -- Extend comments in insert mode, but not in normal mode
 vim.api.nvim_create_autocmd({ 'FileType' }, {
     pattern = { '*' },
@@ -113,6 +115,7 @@ vim.api.nvim_create_autocmd(
 
 require('mason').setup({})
 require('mason-lspconfig').setup({})
+
 
 require('renamer').setup({})
 
@@ -270,41 +273,22 @@ require('lspconfig').bashls.setup({})
 require('lspconfig').taplo.setup({})
 
 require('lspconfig').tsserver.setup({})
-require('lspconfig').pylsp.setup {
-    --on_attach = [custom_attach],
-    settings = {
-        pylsp = {
-            plugins = {
-                -- formatter options
-                autopep8 = { enabled = true },
-                yapf = { enabled = false },
-                -- linter options
-                pyflakes = { enabled = false },
-                pycodestyle = { enabled = false },
-                -- type checker
-                pylsp_mypy = {
-                    enabled = true,
-                    live_mode = false,
-                },
-                -- auto-completion options
-                jedi_completion = { fuzzy = true },
-                -- import sorting
-                pyls_isort = { enabled = true },
-            },
-        },
-    },
-    flags = {
-        debounce_text_changes = 200,
-    },
-    capabilities = capabilities,
-}
-
 require('lspconfig').clangd.setup({
     capabilities = capabilities,
     settings = {
         Clangd = {
             cmd = { 'clangd', '-header-insertion=never' }
         }
+    }
+})
+require('lspconfig').pyright.setup({
+    capabilities = capabilities,
+    settings = {
+    }
+})
+require('lspconfig').autopep8.setup({
+    capabilities = capabilities,
+    settings = {
     }
 })
 
@@ -394,6 +378,14 @@ require('nvim-treesitter.configs').setup {
     }
 }
 
+local null_ls = require('null-ls')
+null_ls.setup({
+    sources = { null_ls.builtins.formatting.black.with({
+        extra_args = { "--line-length=120" },
+    }),
+        null_ls.builtins.formatting.isort,
+    }
+})
 
 local signs = { Error = "", Warn = "", Hint = "", Info = "" }
 for type, icon in pairs(signs) do
@@ -532,3 +524,4 @@ vim.api.nvim_create_autocmd({ "TermOpen", "BufEnter" }, {
         end
     end
 })
+vim.cmd([[ autocmd Filetype python setlocal omnifunc=v:lua.vim.lsp.omnifunc ]])

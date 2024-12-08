@@ -92,6 +92,7 @@ return {
     -- Debugging
     { 'nvim-lua/plenary.nvim', },
     { 'mfussenegger/nvim-dap', },
+    { 'sakhnik/nvim-gdb', },
 
     -- Treesitter
     {
@@ -116,6 +117,12 @@ return {
     { 'hrsh7th/cmp-buffer' },
     { 'hrsh7th/cmp-calc' },
     { 'hrsh7th/vim-vsnip' },
+
+    {
+        'nvimtools/none-ls.nvim',
+        dependencies = { 'nvim-lua/plenary.nvim' },
+    },
+
 
     -- Spelling
     { 'vigoux/ltex-ls.nvim' },
