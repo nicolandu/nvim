@@ -1,9 +1,11 @@
--- Disable netrw at the very start of your init.lua
+-- Disablk netrw at the very start of your init.lua
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
-vim.opt.shell = 'fish'
+-- Also at beginning
+vim.g.nvimgdb_disable_start_keymaps = true
 
+vim.opt.shell = 'fish'
 -- No startup screen (equiv. to [blah blah blah].append([blah blah blah], 'I'))
 vim.opt.shortmess:append('I')
 
@@ -18,8 +20,6 @@ vim.opt.relativenumber = true -- turn on hybrid line numbers
 vim.opt.showmode = false      -- already in status line
 vim.opt.signcolumn = 'yes'
 
-vim.opt.syntax = 'on' -- auto-apply custom per-lang syntax
-
 -- Extend comments in insert mode, but not in normal mode
 vim.api.nvim_create_autocmd({ 'FileType' }, {
     pattern = { '*' },
@@ -29,6 +29,13 @@ vim.api.nvim_create_autocmd({ 'FileType' }, {
         end,
 })
 
+vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
+    pattern = { '*.rs' },
+    callback =
+        function()
+            vim.opt.syntax = 'rust'
+        end,
+})
 
 vim.opt.wrap = true
 vim.opt.linebreak = true
@@ -51,7 +58,7 @@ vim.g.mapleader = ' ' -- space
 -- updatetime: set updatetime for CursorHold
 vim.opt.completeopt = { 'menuone', 'noselect', 'noinsert' }
 vim.opt.shortmess = vim.opt.shortmess + { c = true }
-vim.api.nvim_set_option('updatetime', 300)
+vim.opt.updatetime = 300
 
 -- increment/decrement letters
 vim.opt.nrformats:append('alpha')
@@ -78,15 +85,13 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-require('lazy').setup('plugins')
+require('lazy').setup({ spec = { import = 'plugins' }, rocks = { enabled = false } })
 
 require('gruvbox').setup({})
 vim.cmd('colorscheme gruvbox')
 vim.cmd('hi link GitSignsAdd GruvboxGreenSign')
 vim.cmd('hi link GitSignsChange GruvboxBlueSign')
 vim.cmd('hi link GitSignsDelete GruvboxRedSign')
-
-require('gitsigns').setup({})
 
 require('nvim-surround').setup({})
 require('leap').add_default_mappings()
@@ -114,7 +119,9 @@ vim.api.nvim_create_autocmd(
 )
 
 require('mason').setup({})
-require('mason-lspconfig').setup({})
+require('mason-lspconfig').setup({
+    automatic_installation = true
+})
 
 
 require('renamer').setup({})
@@ -221,8 +228,12 @@ cmp.setup({
         { name = 'calc' },                                       -- source for math calculation
     },
     window = {
-        completion = cmp.config.window.bordered(),
-        documentation = cmp.config.window.bordered(),
+        completion = {
+            border = "rounded",
+        },
+        documentation = {
+            border = "rounded",
+        }
     },
     formatting = {
         fields = { 'menu', 'abbr', 'kind' },
@@ -269,17 +280,15 @@ require('lspconfig').cssls.setup({})
 
 require('lspconfig').bashls.setup({})
 
+-- XML
+require('lspconfig').lemminx.setup({})
+
 -- Toml
 require('lspconfig').taplo.setup({})
 
-require('lspconfig').tsserver.setup({})
+require('lspconfig').ts_ls.setup({})
 require('lspconfig').clangd.setup({
     capabilities = capabilities,
-    settings = {
-        Clangd = {
-            cmd = { 'clangd', '-header-insertion=never' }
-        }
-    }
 })
 require('lspconfig').pyright.setup({
     capabilities = capabilities,
@@ -291,11 +300,23 @@ require('lspconfig').autopep8.setup({
     settings = {
     }
 })
+require('lspconfig').texlab.setup({
+    capabilities = capabilities,
+    settings = {
+    }
+})
 
 vim.g.tex_flavor = "latex"
-require('ltex-ls').setup {
+require('lspconfig').ltex.setup({
+    on_attach = function()
+        require('ltex_extra').setup {
+            -- This is where your dictionary will be stored! Replace this directory with
+            -- whatever you want!
+            load_langs = { 'fr', 'en' },
+            path = vim.fn.expand '~' .. '/.config/nvim/ltex',
+        }
+    end,
     capabilities = capabilities,
-    use_spellfile = false,
     filetypes = { "latex", "tex", "bib", "markdown", "gitcommit", "text" },
     settings = {
         ltex = {
@@ -337,20 +358,13 @@ require('ltex-ls').setup {
             end)(),
         },
     },
-}
+})
 
 local rt = require("rust-tools")
 
 rt.setup({
     capabilities = capabilities,
     server = {
-        on_attach = function(_, bufnr)
-            -- Hover actions
-            vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = bufnr })
-            -- Code action groups
-            vim.keymap.set("n", "<leader>a", rt.code_action_group.code_action_group, { buffer = bufnr })
-        end,
-
         settings = {
             ["rust-analyzer"] = {
                 checkOnSave = {
@@ -361,10 +375,20 @@ rt.setup({
     },
 })
 
+-- Server cancelled the request shenanigans
+for _, method in ipairs({ 'textDocument/diagnostic', 'workspace/diagnostic' }) do
+    local default_diagnostic_handler = vim.lsp.handlers[method]
+    vim.lsp.handlers[method] = function(err, result, context, config)
+        if err ~= nil and err.code == -32802 then
+            return
+        end
+        return default_diagnostic_handler(err, result, context, config)
+    end
+end
+
 
 -- Treesitter Plugin Setup
 require('nvim-treesitter.configs').setup {
-    ensure_installed = { "lua", "rust", "toml" },
     auto_install = true,
     highlight = {
         enable = true,
@@ -377,6 +401,8 @@ require('nvim-treesitter.configs').setup {
         max_file_lines = nil,
     }
 }
+
+require('detect-language').setup {}
 
 local null_ls = require('null-ls')
 null_ls.setup({
@@ -426,6 +452,10 @@ end
 -- without count, j/k skip visual lines
 nmap('j', "v:count ? 'j' : 'gj'", true) -- enable vim expr mode (last param)
 nmap('k', "v:count ? 'k' : 'gk'", true)
+-- without count, j/k skip visual lines
+
+vmap('j', "v:count ? 'j' : 'gj'", true) -- enable vim expr mode (last param)
+vmap('k', "v:count ? 'k' : 'gk'", true)
 
 imap('<C-c>', '<esc>')
 
@@ -458,8 +488,11 @@ vmap('<leader>y', '"+y')
 nmap('<leader>Y', '"+Y') -- same till end of line
 
 nmap('<leader>d', '"_d') -- delete into black hole
+nmap('<leader>D', '"_D')
 vmap('<leader>d', '"_d')
 nmap('<leader>c', '"_c')
+vmap('<leader>c', '"_c')
+nmap('<leader>C', '"_C')
 nmap('<leader>x', '"_x')
 nmap('<leader>s', '"_s')
 
@@ -477,20 +510,22 @@ end
 local opts = { noremap = true, silent = true }
 
 vim.keymap.set('n', '<leader>cc', quickfix, opts)
-nmap('<leader>ca', ':CodeActionMenu<cr>')
-
 vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
 vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+vim.keymap.set('n', '<leader>td', vim.lsp.buf.type_definition, opts)
 vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
 vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
 vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
 vim.keymap.set('n', '<leader>o', vim.diagnostic.open_float, opts)
-vim.keymap.set('n', '<leader>D', vim.lsp.buf.type_definition, opts)
 vim.keymap.set('n', '<f2>', vim.lsp.buf.rename, opts)
 vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
 vim.keymap.set('n', '<f3>', vim.lsp.buf.format, opts)
+vim.keymap.set({ 'v', 'n' }, '<leader>ca', require("actions-preview").code_actions)
+vim.keymap.set('n', '<leader>ll', ':GdbStartLLDB lldb ./')
+nmap('<leader>lp', ':GdbStartPDB python3 -m pdb ./')
+
 
 vim.keymap.set({ 'n', 'v' }, '<leader>rn', require('renamer').rename, opts)
 vim.keymap.set('i', '<f2>', require('renamer').rename, opts)

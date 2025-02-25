@@ -88,6 +88,7 @@ return {
     { 'williamboman/mason-lspconfig.nvim', },
     { 'neovim/nvim-lspconfig', },
     { 'simrat39/rust-tools.nvim' },
+    { 'barreiroleo/ltex-extra.nvim' },
 
     -- Debugging
     { 'nvim-lua/plenary.nvim', },
@@ -101,6 +102,8 @@ return {
             require("nvim-treesitter.install").update({ with_sync = true })()
         end,
     },
+
+    { 'spywhere/detect-language.nvim' },
 
     -- Completion framework:
     { 'hrsh7th/nvim-cmp' },
@@ -128,7 +131,7 @@ return {
     { 'vigoux/ltex-ls.nvim' },
 
     -- Code actions
-    { 'weilbith/nvim-code-action-menu', },
+    { 'aznhe21/actions-preview.nvim', },
 
     { 'matthiasquintern/vim-ca65' },
 }
