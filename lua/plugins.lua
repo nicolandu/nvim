@@ -61,14 +61,6 @@ return {
     {
         'nvim-telescope/telescope.nvim',
         tag = '0.1.4',
-        opts = {
-            extensions = {
-                file_browser = {
-                    -- disables netrw and { telescope-file-browser in its place
-                    hijack_netrw = true,
-                },
-            },
-        },
     },
     {
         'folke/noice.nvim',
@@ -81,6 +73,21 @@ return {
             --   If not available, we use `mini` as the fallback
             'rcarriga/nvim-notify',
         }
+    },
+    {
+        "eero-lehtinen/oklch-color-picker.nvim",
+        event = "VeryLazy",
+        version = "*",
+        keys = {
+            -- One handed keymap recommended, you will be using the mouse
+            {
+                "<leader>v",
+                function() require("oklch-color-picker").pick_under_cursor() end,
+                desc = "Color pick under cursor",
+            },
+        },
+        ---@type oklch.Opts
+        opts = {},
     },
 
     -- LSP Support
@@ -102,8 +109,6 @@ return {
             require("nvim-treesitter.install").update({ with_sync = true })()
         end,
     },
-
-    { 'spywhere/detect-language.nvim' },
 
     -- Completion framework:
     { 'hrsh7th/nvim-cmp' },

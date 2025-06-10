@@ -1,4 +1,4 @@
--- Disablk netrw at the very start of your init.lua
+-- Disablk netrw at the very start of your init.luapicke
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
@@ -37,6 +37,14 @@ vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
         end,
 })
 
+vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
+    pattern = { '*.tera' },
+    callback =
+        function()
+            vim.opt.filetype = 'html'
+        end,
+})
+
 vim.opt.wrap = true
 vim.opt.linebreak = true
 
@@ -48,6 +56,9 @@ vim.opt.autoindent = true
 vim.opt.swapfile = false
 
 vim.g.mapleader = ' ' -- space
+
+-- Hide trailing whitespace with .tex files
+vim.g.trailing_whitespace_exclude_filetypes = { 'tex', 'git' }
 
 -- Set completeopt to have a better completion experience
 -- :help completeopt
@@ -118,11 +129,100 @@ vim.api.nvim_create_autocmd(
     }
 )
 
+local telescope_custom_actions = {}
+
+local actions = require('telescope.actions')
+local action_state = require('telescope.actions.state')
+function telescope_custom_actions._multiopen(prompt_bufnr, open_cmd)
+    local picker = action_state.get_current_picker(prompt_bufnr)
+    local selected_entry = action_state.get_selected_entry()
+    local num_selections = #picker:get_multi_selection()
+
+    if not num_selections or num_selections <= 1 then
+        actions.add_selection(prompt_bufnr)
+    end
+
+    actions.send_selected_to_qflist(prompt_bufnr)
+
+    local initial_buf = vim.api.nvim_win_get_buf(picker.original_win_id)
+    local initial_name = vim.api.nvim_buf_get_name(initial_buf)
+    local initial_modified = vim.api.nvim_get_option_value("modified", { buf = initial_buf })
+
+    vim.cmd("cfdo " .. open_cmd)
+
+    if initial_name == "" and not initial_modified then
+        vim.cmd('bdelete ' .. initial_buf)
+    end
+end
+
+function telescope_custom_actions.multi_selection_open_vsplit(prompt_bufnr)
+    telescope_custom_actions._multiopen(prompt_bufnr, "vsplit")
+end
+
+function telescope_custom_actions.multi_selection_open_split(prompt_bufnr)
+    telescope_custom_actions._multiopen(prompt_bufnr, "split")
+end
+
+function telescope_custom_actions.multi_selection_open_tab(prompt_bufnr)
+    telescope_custom_actions._multiopen(prompt_bufnr, "tabe")
+end
+
+function telescope_custom_actions.multi_selection_open(prompt_bufnr)
+    telescope_custom_actions._multiopen(prompt_bufnr, "edit")
+end
+
+require('telescope').setup({
+    extensions = {
+        file_browser = {
+            -- disables netrw and uses telescope-file-browser in its place
+            hijack_netrw = true,
+        },
+    },
+    defaults = {
+        file_ignore_patterns = { "node_modules", ".git" },
+        mappings = {
+            i = {
+                ["<ESC>"] = actions.close,
+                ["<C-J>"] = actions.move_selection_next,
+                ["<C-K>"] = actions.move_selection_previous,
+                ["<CR>"] = actions.select_default,
+                ["<TAB>"] = actions.nop,
+                ["<S-TAB>"] = actions.nop,
+            },
+            n = i,
+        },
+    },
+    pickers = {
+        -- used to show code actions
+        find_files = {
+            mappings = {
+                i = {
+                    ["<ESC>"] = actions.close,
+                    ["<C-J>"] = actions.move_selection_next,
+                    ["<C-K>"] = actions.move_selection_previous,
+                    ["<TAB>"] = actions.toggle_selection,
+                    ["<C-TAB>"] = actions.toggle_selection + actions.move_selection_next,
+                    ["<S-TAB>"] = actions.toggle_selection + actions.move_selection_previous,
+                    ["<CR>"] = telescope_custom_actions.multi_selection_open,
+                    ["<C-V>"] = telescope_custom_actions.multi_selection_open_vsplit,
+                    ["<C-S>"] = telescope_custom_actions.multi_selection_open_split,
+                    ["<C-T>"] = telescope_custom_actions.multi_selection_open_tab,
+                    ["<C-DOWN>"] = actions.cycle_history_next,
+                    ["<C-UP>"] = actions.cycle_history_prev,
+                },
+                n = i,
+            },
+        },
+        live_grep = find_files,
+    },
+
+}
+)
+
 require('mason').setup({})
 require('mason-lspconfig').setup({
     automatic_installation = true
 })
-
 
 require('renamer').setup({})
 
@@ -303,6 +403,11 @@ require('lspconfig').autopep8.setup({
 require('lspconfig').texlab.setup({
     capabilities = capabilities,
     settings = {
+        texlab = {
+            diagnostics = {
+                ignoredPatterns = { "[Uu]ndefined [Rr]eference" }
+            }
+        }
     }
 })
 
@@ -327,9 +432,6 @@ require('lspconfig').ltex.setup({
             additionalRules = {
                 enablePickyRules = false,
                 motherTongue = "fr",
-            },
-            disabledRules = {
-                fr = { "APOS_TYP", "FRENCH_WHITESPACE" }
             },
             checkFrequency = "save",
             completionEnabled = true,
@@ -401,8 +503,6 @@ require('nvim-treesitter.configs').setup {
         max_file_lines = nil,
     }
 }
-
-require('detect-language').setup {}
 
 local null_ls = require('null-ls')
 null_ls.setup({
@@ -549,7 +649,23 @@ vnoremap <expr> k JKescape('k')
 ]])
 
 
-vim.cmd("autocmd BufWritePre * lua vim.lsp.buf.format()")
+-- Auto format on save for all files except some
+vim.api.nvim_create_autocmd("BufWritePre", {
+    callback = function(args)
+        local filetype = vim.bo[args.buf].filetype
+        local no_rename = {
+            tex = true,
+            text = true,
+            html = true,
+            htmldjango = true,
+            svg = true,
+            markdown = true,
+        }
+        if not no_rename[filetype] then
+            vim.lsp.buf.format({ async = false })
+        end
+    end,
+})
 
 vim.api.nvim_create_autocmd({ "TermOpen", "BufEnter" }, {
     pattern = { "*" },
